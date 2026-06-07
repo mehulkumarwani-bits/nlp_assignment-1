@@ -123,7 +123,7 @@ CATEGORY_TO_DOMAIN = {
     "Data Scientist": "Data Science",
     "Python Developer": "Data Science",
     "Cloud Engineer": "Cloud Computing",
-    "Cyber Security Analyst": "Cyber Security",
+    "Cyber Security Analyst": "Cyber Security"
 }
 
 # ─────────────────────────────────────────────
@@ -576,21 +576,21 @@ def load_dataset(path: str = None) -> pd.DataFrame:
     """
     Load resume dataset.
     Expected columns: Category, Resume
-    If no path is provided, this function attempts to load gpt_dataset.csv from the script folder.
+    If no path is provided, this function attempts to load kaggle_resume_dataset.csv from the script folder.
     """
     if path and os.path.exists(path):
         df = pd.read_csv(path)
         print(f"[Dataset] Loaded {len(df)} resumes from {path}")
         return df
 
-    default_path = os.path.join(os.path.dirname(__file__), "gpt_dataset.csv")
+    default_path = os.path.join(os.path.dirname(__file__), "kaggle_resume_dataset.csv")
     if os.path.exists(default_path):
         df = pd.read_csv(default_path)
         print(f"[Dataset] Loaded {len(df)} resumes from {default_path}")
         return df
 
     raise FileNotFoundError(
-        "Dataset not found. Please provide path to gpt_dataset.csv or place it next to pipeline.py."
+        "Dataset not found. Please provide path to kaggle_resume_dataset.csv or place it next to pipeline.py."
     )
 
 
@@ -638,10 +638,16 @@ def run_pipeline(resume_text: str, dataset_path: str = None, original_category: 
 
 
 if __name__ == "__main__":
+    #Train the pipeline on the dataset
     df = load_dataset()
     pipeline = ResumePipeline()
     pipeline.fit(df)
+    
 
-    sample_row = df.iloc[404]
-    result = pipeline.analyze(sample_row["Resume"], original_category=sample_row["Category"])
-    display_result(result)
+    # Test the pipeline on the entire test dataset and display results for each resume
+    df_test = pd.read_csv(os.path.join(os.path.dirname(__file__), "kaggle_resume_dataset_test.csv"))
+
+    for idx, test_row in df_test.iterrows():
+        print(f"\n--- Test record {idx + 1} / {len(df_test)} ---")
+        result = pipeline.analyze(test_row["Resume"], original_category=test_row["Category"])
+        display_result(result)

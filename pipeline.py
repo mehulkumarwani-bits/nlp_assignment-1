@@ -44,7 +44,12 @@ try:
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.model_selection import train_test_split
-    from sklearn.metrics import classification_report, accuracy_score
+    from sklearn.metrics import (
+        classification_report,
+        accuracy_score,
+        precision_recall_fscore_support,
+        confusion_matrix
+    )
     from sklearn.preprocessing import LabelEncoder
 except ImportError:
     raise ImportError("Run: pip install scikit-learn")
@@ -420,15 +425,34 @@ class DomainClassifier:
         self.clf.fit(X_train, y_train)
         y_pred = self.clf.predict(X_test)
         acc = accuracy_score(y_test, y_pred)
+        precision_macro, recall_macro, f1_macro, _ = precision_recall_fscore_support(
+            y_test, y_pred, average="macro", zero_division=0
+        )
+        precision_weighted, recall_weighted, f1_weighted, _ = precision_recall_fscore_support(
+            y_test, y_pred, average="weighted", zero_division=0
+        )
         report = classification_report(
             y_test, y_pred,
             target_names=self.label_encoder.classes_,
             output_dict=True,
             zero_division=0
         )
+        cm = confusion_matrix(y_test, y_pred)
         self.is_trained = True
         print(f"  [Classifier] Accuracy: {acc:.2%}")
-        return {"accuracy": round(acc, 4), "report": report}
+        print(f"  [Classifier] Macro F1: {f1_macro:.2%}, Weighted F1: {f1_weighted:.2%}")
+        return {
+            "accuracy": round(acc, 4),
+            "report": report,
+            "classes": list(self.label_encoder.classes_),
+            "confusion_matrix": cm.tolist(),
+            "macro_precision": round(precision_macro, 4),
+            "macro_recall": round(recall_macro, 4),
+            "macro_f1": round(f1_macro, 4),
+            "weighted_precision": round(precision_weighted, 4),
+            "weighted_recall": round(recall_weighted, 4),
+            "weighted_f1": round(f1_weighted, 4)
+        }
 
     def predict(self, text: str) -> tuple:
         X = self.vectorizer.transform([text])
@@ -596,7 +620,7 @@ def load_dataset(path: str = None) -> pd.DataFrame:
 
 def display_result(result: dict):
     print("\n" + "="*55)
-    print("  FINAL OUTPUT")
+    print(" OUTPUT FROM TEST DATASET")
     print("="*55)
     print(f"Extracted student skills: {', '.join(result.get('skills_extracted', [])) or 'None'}")
     print(f"Recommended internship domain: {result.get('recommended_internship_domain', 'Unknown')}")
@@ -621,6 +645,12 @@ def display_result(result: dict):
     print("\nPerformance metrics:")
     metrics = result.get('performance_metrics', {})
     print(f"  - Classifier accuracy: {metrics.get('accuracy', 'N/A')}")
+    print(f"  - Macro F1: {metrics.get('macro_f1', 'N/A')}")
+    print(f"  - Weighted F1: {metrics.get('weighted_f1', 'N/A')}")
+    if isinstance(metrics.get('classes'), list) and isinstance(metrics.get('confusion_matrix'), list):
+        print("  - Confusion matrix classes:")
+        for cls, row in zip(metrics.get('classes'), metrics.get('confusion_matrix')):
+            print(f"      {cls}: {row}")
     if isinstance(metrics.get('report'), dict):
         print(f"  - Classification report classes: {list(metrics.get('report', {}).keys())[:5]}")
     print("" + "="*55 + "\n")
