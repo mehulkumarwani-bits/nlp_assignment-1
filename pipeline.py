@@ -2,6 +2,7 @@
 NLP Pipeline - Intelligent Student Resume Analysis
 PS-3 Assignment: Resume Analysis & Internship Recommendation
 """
+#!pip install nltk gensim hmmlearn scikit-learn pandas numpy tensorflow
 
 import os
 import re
